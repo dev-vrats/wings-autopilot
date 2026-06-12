@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { StatusBadge } from "@/components/ui/Badges";
-import { GhostButton, PillButton } from "@/components/ui/Buttons";
+import { PillButton } from "@/components/ui/Buttons";
 import { ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 

@@ -11,7 +11,7 @@ import { ChevronDown, ChevronUp, Check, X, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ProviderInquiries() {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +34,7 @@ export default function ProviderInquiries() {
 
   useEffect(() => {
     fetchInquiries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const toggleExpand = (id) => {
@@ -66,7 +67,7 @@ export default function ProviderInquiries() {
           businessId: inquiry.businessId,
           providerId: user.uid,
           createdAt: new Date().toISOString()
-        }).catch(async (e) => {
+        }).catch(async () => {
            // if chat doc doesn't exist, setDoc instead. actually we should just use setDoc.
         });
         
