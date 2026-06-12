@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { collection, query, where, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Bell } from "lucide-react";
+import { motion } from "framer-motion";
 
 export function NotificationBell({ userId }) {
   const [notifications, setNotifications] = useState([]);
@@ -56,21 +57,32 @@ export function NotificationBell({ userId }) {
     });
   };
 
+  const bellAnimation = unreadCount > 0 ? {
+    rotate: [0, -15, 15, -15, 15, 0],
+    transition: {
+      duration: 0.5,
+      repeat: Infinity,
+      repeatDelay: 2
+    }
+  } : {};
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-glass-hover transition-colors text-muted hover:text-white"
       >
-        <Bell className="w-5 h-5" />
+        <motion.div animate={bellAnimation}>
+          <Bell className="w-5 h-5" />
+        </motion.div>
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-white rounded-full ring-2 ring-background"></span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-[#111] border border-glass-border rounded-xl shadow-2xl backdrop-blur-xl z-50 overflow-hidden">
-          <div className="p-4 border-b border-divider flex justify-between items-center bg-black/40">
+        <div className="absolute right-0 mt-2 w-80 bg-black/95 border border-glass-border rounded-xl shadow-2xl backdrop-blur-xl z-50 overflow-hidden">
+          <div className="p-4 border-b border-divider flex justify-between items-center bg-white/5">
             <h3 className="font-semibold">Notifications</h3>
             {unreadCount > 0 && (
               <button 

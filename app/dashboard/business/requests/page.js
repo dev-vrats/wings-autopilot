@@ -40,7 +40,7 @@ export default function BusinessRequests() {
   };
 
   return (
-    <PageTransition className="p-8 max-w-4xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">My Requests</h1>
         <p className="text-muted mt-2">Inquiries you&apos;ve sent to service providers.</p>
@@ -50,7 +50,7 @@ export default function BusinessRequests() {
         {loading && <p className="text-muted">Loading requests...</p>}
         
         {!loading && requests.length === 0 && (
-          <GlassCard className="p-8 text-center text-muted">
+          <GlassCard className="p-4 md:p-8 text-center text-muted">
             No requests sent yet.
           </GlassCard>
         )}

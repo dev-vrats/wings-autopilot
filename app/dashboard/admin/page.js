@@ -57,7 +57,7 @@ export default function AdminOverview() {
   }, []);
 
   return (
-    <PageTransition className="p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold">Platform Overview</h1>

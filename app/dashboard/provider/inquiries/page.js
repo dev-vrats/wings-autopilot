@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/Badges";
 import { GhostButton, PillButton } from "@/components/ui/Buttons";
 import { ChevronDown, ChevronUp, Check, X, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProviderInquiries() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function ProviderInquiries() {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [showAcceptAnimation, setShowAcceptAnimation] = useState(false);
 
   const fetchInquiries = async () => {
     if (!user) return;
@@ -82,8 +84,11 @@ export default function ProviderInquiries() {
           updatedAt: new Date().toISOString()
         }, { merge: true });
 
-        // Route to chat
-        router.push(`/dashboard/provider/chat/${inquiry.id}`);
+        // Show Animation before routing
+        setShowAcceptAnimation(true);
+        setTimeout(() => {
+          router.push(`/dashboard/provider/chat/${inquiry.id}`);
+        }, 1500);
       } else {
         // Just refresh the list
         fetchInquiries();
@@ -95,7 +100,38 @@ export default function ProviderInquiries() {
   };
 
   return (
-    <PageTransition className="p-8 max-w-4xl mx-auto space-y-8">
+    <>
+      <AnimatePresence>
+        {showAcceptAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 260,
+                damping: 20,
+              }}
+              className="bg-white/10 p-8 rounded-full border border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+            >
+              <motion.div
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Check className="w-24 h-24 text-white" strokeWidth={3} />
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Inquiries</h1>
         <p className="text-muted mt-2">Messages from local businesses requesting your services.</p>
@@ -105,7 +141,7 @@ export default function ProviderInquiries() {
         {loading && <p className="text-muted">Loading inquiries...</p>}
         
         {!loading && inquiries.length === 0 && (
-          <GlassCard className="p-8 text-center text-muted">
+          <GlassCard className="p-4 md:p-8 text-center text-muted">
             No inquiries yet.
           </GlassCard>
         )}
@@ -201,5 +237,6 @@ export default function ProviderInquiries() {
         ))}
       </div>
     </PageTransition>
+    </>
   );
 }

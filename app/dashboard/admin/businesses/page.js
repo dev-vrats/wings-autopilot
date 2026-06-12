@@ -33,7 +33,7 @@ export default function AdminBusinesses() {
   }, []);
 
   return (
-    <PageTransition className="p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Local Businesses</h1>
         <p className="text-muted mt-2">Manage businesses on the platform.</p>

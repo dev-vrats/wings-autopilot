@@ -71,7 +71,7 @@ export default function SavedProviders() {
   };
 
   return (
-    <PageTransition className="p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Saved Providers</h1>
         <p className="text-muted mt-2">Experts you&apos;ve bookmarked for later.</p>

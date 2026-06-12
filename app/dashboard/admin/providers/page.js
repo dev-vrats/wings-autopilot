@@ -61,7 +61,7 @@ export default function AdminProviders() {
   const filtered = providers.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <PageTransition className="p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold">Service Providers</h1>

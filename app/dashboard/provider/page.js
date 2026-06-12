@@ -37,7 +37,7 @@ export default function ProviderProfile() {
   if (loading) return null;
 
   return (
-    <PageTransition className="p-8 max-w-4xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Profile</h1>
         <PillButton onClick={() => router.push("/dashboard/provider/build-profile")}>

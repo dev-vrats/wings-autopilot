@@ -6,8 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { PillButton } from "@/components/ui/Buttons";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Check, CheckCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 export function ChatInterface({ chatId, otherPartyName, backUrl }) {
   const { user } = useAuth();
@@ -45,6 +46,19 @@ export function ChatInterface({ chatId, otherPartyName, backUrl }) {
     return () => unsubscribe();
   }, [user, chatId]);
 
+  // Mark incoming messages as seen
+  useEffect(() => {
+    if (!user || messages.length === 0) return;
+    
+    messages.forEach((msg) => {
+      if (msg.senderId !== user.uid && msg.status !== "seen") {
+        updateDoc(doc(db, "chats", chatId, "messages", msg.id), {
+          status: "seen"
+        }).catch(err => console.error("Failed to mark as seen", err));
+      }
+    });
+  }, [messages, user, chatId]);
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
@@ -56,6 +70,7 @@ export function ChatInterface({ chatId, otherPartyName, backUrl }) {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         text,
         senderId: user.uid,
+        status: "sent",
         createdAt: new Date().toISOString()
       });
 
@@ -97,7 +112,12 @@ export function ChatInterface({ chatId, otherPartyName, backUrl }) {
             messages.map((msg) => {
               const isMine = msg.senderId === user?.uid;
               return (
-                <div key={msg.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={msg.id} 
+                  className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                >
                   <div 
                     className={`max-w-[75%] p-3 rounded-2xl text-sm ${
                       isMine 
@@ -107,10 +127,21 @@ export function ChatInterface({ chatId, otherPartyName, backUrl }) {
                   >
                     {msg.text}
                   </div>
-                  <span className="text-[10px] text-muted mt-1 px-1">
-                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                  </span>
-                </div>
+                  <div className="flex items-center gap-1 mt-1 px-1">
+                    <span className="text-[10px] text-muted">
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </span>
+                    {isMine && (
+                      <span className="text-muted">
+                        {msg.status === "seen" ? (
+                          <CheckCheck className="w-3 h-3 text-blue-400" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
               );
             })
           )}

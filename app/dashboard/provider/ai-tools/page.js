@@ -42,7 +42,7 @@ export default function ProviderAITools() {
   };
 
   return (
-    <PageTransition className="p-8 max-w-6xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Sparkles className="w-8 h-8" /> WINGS AI Tools
