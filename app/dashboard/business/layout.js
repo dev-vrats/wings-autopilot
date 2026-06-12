@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Bookmark, Inbox, TrendingUp, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
   { name: "Discover Providers", href: "/dashboard/business", icon: Search },
@@ -28,7 +29,7 @@ export default function BusinessLayout({ children }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
       <aside className="w-64 border-r border-divider bg-background flex flex-col hidden md:flex">
         <div className="p-6 border-b border-divider">
@@ -38,7 +39,7 @@ export default function BusinessLayout({ children }) {
         
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== "/dashboard/business" && pathname.startsWith(item.href));
             const Icon = item.icon;
             return (
               <Link
@@ -71,8 +72,16 @@ export default function BusinessLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background/50">
-        {children}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-background/50">
+        {/* Topbar */}
+        <header className="h-16 border-b border-divider flex items-center justify-end px-6 shrink-0 bg-background/80 backdrop-blur-md">
+          {user && <NotificationBell userId={user.uid} />}
+        </header>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </main>
 
       {/* Mobile Nav (simplified) */}
@@ -90,3 +99,4 @@ export default function BusinessLayout({ children }) {
     </div>
   );
 }
+

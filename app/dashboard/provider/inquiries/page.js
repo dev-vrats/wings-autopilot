@@ -1,139 +1,204 @@
 "use client";
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { StatusBadge } from "@/components/ui/Badges";
 import { GhostButton, PillButton } from "@/components/ui/Buttons";
-import { SideDrawer } from "@/components/ui/SideDrawer";
+import { ChevronDown, ChevronUp, Check, X, MessageSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ProviderInquiries() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const router = useRouter();
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [replyText, setReplyText] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
+
+  const fetchInquiries = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const q = query(collection(db, "inquiries"), where("providerId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setInquiries(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchInquiries = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const q = query(collection(db, "inquiries"), where("providerId", "==", user.uid));
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setInquiries(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchInquiries();
   }, [user]);
 
-  const handleReply = (e) => {
-    e.preventDefault();
-    if (!replyText.trim()) return;
-    alert("Reply sent! (Mock implementation)");
-    setReplyText("");
-    setIsDrawerOpen(false);
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleStatusChange = async (inquiry, newStatus) => {
+    try {
+      // Update inquiry status
+      const inquiryRef = doc(db, "inquiries", inquiry.id);
+      await updateDoc(inquiryRef, {
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      });
+
+      // Create a notification for the business owner
+      await addDoc(collection(db, "notifications"), {
+        userId: inquiry.businessId,
+        title: `Inquiry ${newStatus === "accepted" ? "Accepted" : "Ignored"}`,
+        body: `Your inquiry for ${inquiry.service} was ${newStatus} by the provider.`,
+        type: newStatus === "accepted" ? "inquiry_accepted" : "inquiry_ignored",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+
+      if (newStatus === "accepted") {
+        // Create chat document if accepted
+        await updateDoc(doc(db, "chats", inquiry.id), {
+          inquiryId: inquiry.id,
+          businessId: inquiry.businessId,
+          providerId: user.uid,
+          createdAt: new Date().toISOString()
+        }).catch(async (e) => {
+           // if chat doc doesn't exist, setDoc instead. actually we should just use setDoc.
+        });
+        
+        // Proper way to initialize chat document:
+        const { setDoc } = await import("firebase/firestore");
+        await setDoc(doc(db, "chats", inquiry.id), {
+          inquiryId: inquiry.id,
+          businessId: inquiry.businessId,
+          providerId: user.uid,
+          createdAt: new Date().toISOString(),
+          lastMessage: "",
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        // Route to chat
+        router.push(`/dashboard/provider/chat/${inquiry.id}`);
+      } else {
+        // Just refresh the list
+        fetchInquiries();
+      }
+    } catch (err) {
+      console.error("Failed to change status:", err);
+      alert("An error occurred. Please try again.");
+    }
   };
 
   return (
-    <PageTransition className="p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-8 max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Inquiries</h1>
         <p className="text-muted mt-2">Messages from local businesses requesting your services.</p>
       </div>
 
-      <GlassCard className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-muted uppercase border-b border-divider">
-            <tr>
-              <th className="px-4 py-3">Business</th>
-              <th className="px-4 py-3">Service</th>
-              <th className="px-4 py-3">Message Snippet</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inquiries.map((inq) => (
-              <tr key={inq.id} className="border-b border-divider last:border-0 hover:bg-white/5 transition-colors">
-                <td className="px-4 py-4 font-medium">{inq.businessName || "Local Business"}</td>
-                <td className="px-4 py-4">{inq.service}</td>
-                <td className="px-4 py-4 text-muted max-w-[200px] truncate">{inq.message}</td>
-                <td className="px-4 py-4">
-                  <StatusBadge status={inq.status || "new"} />
-                </td>
-                <td className="px-4 py-4 text-right">
-                  <GhostButton 
-                    className="py-1 px-3 text-xs" 
-                    onClick={() => {
-                      setSelected(inq);
-                      setIsDrawerOpen(true);
-                    }}
-                  >
-                    View
-                  </GhostButton>
-                </td>
-              </tr>
-            ))}
-            {inquiries.length === 0 && !loading && (
-              <tr>
-                <td colSpan="5" className="px-4 py-8 text-center text-muted">No inquiries yet.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </GlassCard>
-
-      <SideDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        title="Inquiry Details"
-      >
-        {selected && (
-          <div className="space-y-6 flex flex-col h-full">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted mb-1">From</p>
-                <p className="font-semibold">{selected.businessName || "Local Business"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted mb-1">Service Requested</p>
-                <p className="font-semibold">{selected.service}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted mb-1">Message</p>
-                <div className="p-4 rounded-lg bg-glass-bg border border-glass-border">
-                  <p className="text-sm whitespace-pre-wrap">{selected.message}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto pt-6 border-t border-divider">
-              <form onSubmit={handleReply} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted mb-1.5">Reply</label>
-                  <textarea
-                    rows={4}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type your response..."
-                    className="w-full px-4 py-2.5 rounded-lg bg-glass-bg border border-glass-border text-white placeholder-muted focus:outline-none focus:ring-1 focus:ring-white text-sm resize-none"
-                  />
-                </div>
-                <PillButton type="submit" className="w-full">Send Reply</PillButton>
-              </form>
-            </div>
-          </div>
+      <div className="space-y-4">
+        {loading && <p className="text-muted">Loading inquiries...</p>}
+        
+        {!loading && inquiries.length === 0 && (
+          <GlassCard className="p-8 text-center text-muted">
+            No inquiries yet.
+          </GlassCard>
         )}
-      </SideDrawer>
+
+        {!loading && inquiries.map((inq) => (
+          <GlassCard key={inq.id} className="overflow-hidden p-0 transition-all">
+            {/* Header Row */}
+            <div 
+              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+              onClick={() => toggleExpand(inq.id)}
+            >
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div>
+                  <p className="font-semibold">{inq.businessName || "Local Business"}</p>
+                  <p className="text-xs text-muted mt-1">{inq.createdAt ? new Date(inq.createdAt).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm text-muted">{inq.service}</p>
+                </div>
+                <div className="flex items-center gap-4 justify-end md:justify-start">
+                  <StatusBadge status={inq.status || "new"} />
+                </div>
+              </div>
+              <div className="pl-4">
+                {expandedId === inq.id ? (
+                  <ChevronUp className="w-5 h-5 text-muted" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-muted" />
+                )}
+              </div>
+            </div>
+
+            {/* Expanded Details */}
+            {expandedId === inq.id && (
+              <div className="p-4 border-t border-divider bg-white/[0.02]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-muted mb-1 uppercase tracking-wider font-semibold">Service Requested</p>
+                      <p className="text-sm">{inq.service}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1 uppercase tracking-wider font-semibold">Message</p>
+                      <div className="p-3 rounded-lg bg-glass-bg border border-glass-border">
+                        <p className="text-sm whitespace-pre-wrap">{inq.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col justify-end items-end">
+                    {inq.status === "new" ? (
+                      <div className="flex gap-3">
+                        <GhostButton 
+                          className="flex items-center gap-2 border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(inq, "ignored");
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                          Ignore
+                        </GhostButton>
+                        <PillButton 
+                          className="flex items-center gap-2 bg-white text-black hover:bg-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(inq, "accepted");
+                          }}
+                        >
+                          <Check className="w-4 h-4" />
+                          Accept
+                        </PillButton>
+                      </div>
+                    ) : inq.status === "accepted" ? (
+                      <PillButton 
+                        className="flex items-center gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/provider/chat/${inq.id}`);
+                        }}
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Go to Chat
+                      </PillButton>
+                    ) : (
+                      <p className="text-sm text-muted">Inquiry was ignored.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </GlassCard>
+        ))}
+      </div>
     </PageTransition>
   );
 }
